@@ -96,7 +96,7 @@ export async function POST(request) {
     console.log('[REGISTER] Database connected successfully');
 
     // Step 5: Email Check — is user already registered?
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() }).exec();
 
     if (existingUser) {
       console.log('[REGISTER] User already exists:', email);
@@ -123,7 +123,6 @@ export async function POST(request) {
       password: hashedPassword,
       loginCount: 0,
       loginHistory: [],
-      createdAt: new Date(),
     });
     console.log('[REGISTER] User created successfully:', newUser._id);
 

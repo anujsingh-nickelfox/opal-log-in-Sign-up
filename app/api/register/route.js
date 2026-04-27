@@ -128,6 +128,14 @@ export async function POST(request) {
   } catch (error) {
     console.error('Registration Error:', error);
 
+    // Handle MongoDB connection errors
+    if (error.name === 'MongooseError' || error.message.includes('Mongo')) {
+      return NextResponse.json(
+        { success: false, message: 'Database connection error. Please try again later.' },
+        { status: 503 }
+      );
+    }
+
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((e) => e.message);

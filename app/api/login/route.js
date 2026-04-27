@@ -116,6 +116,15 @@ export async function POST(request) {
     );
   } catch (error) {
     console.error('Login Error:', error);
+
+    // Handle MongoDB connection errors
+    if (error.name === 'MongooseError' || error.message.includes('Mongo')) {
+      return NextResponse.json(
+        { success: false, message: 'Database connection error. Please try again later.' },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, message: 'Server error. Please try again.' },
       { status: 500 }

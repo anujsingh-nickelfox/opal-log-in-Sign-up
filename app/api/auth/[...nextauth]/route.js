@@ -54,6 +54,10 @@ export const authOptions = {
             loginCount: user.loginCount + 1,
           };
         } catch (error) {
+          console.error('NextAuth authorize error:', error);
+          if (error.name === 'MongooseError' || error.message.includes('Mongo')) {
+            throw new Error('Database connection error. Please try again later.');
+          }
           throw new Error(error.message || 'Authentication failed');
         }
       },

@@ -33,11 +33,14 @@ function rateLimit(ip) {
 
 export async function POST(request) {
   try {
+    console.log('[REGISTER] Starting registration request');
+
     // Step 4: Security Check — Rate Limiting
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const rateLimitResult = rateLimit(ip);
 
     if (!rateLimitResult.allowed) {
+      console.log('[REGISTER] Rate limit exceeded for IP:', ip);
       return NextResponse.json(
         {
           success: false,
@@ -51,8 +54,11 @@ export async function POST(request) {
     const body = await request.json();
     const { name, email, password } = body;
 
+    console.log('[REGISTER] Received data:', { name, email, password: '***' });
+
     // Server-side validation
     if (!name || !email || !password) {
+      console.log('[REGISTER] Validation failed: missing fields');
       return NextResponse.json(
         { success: false, message: 'All fields are required: name, email, and password.' },
         { status: 400 }
@@ -60,6 +66,7 @@ export async function POST(request) {
     }
 
     if (name.trim().length < 2) {
+      console.log('[REGISTER] Validation failed: name too short');
       return NextResponse.json(
         { success: false, message: 'Name must be at least 2 characters long.' },
         { status: 400 }
@@ -68,6 +75,7 @@ export async function POST(request) {
 
     const emailRegex = /^\S+@\S+\.\S+$/;
     if (!emailRegex.test(email)) {
+      console.log('[REGISTER] Validation failed: invalid email');
       return NextResponse.json(
         { success: false, message: 'Please enter a valid email address.' },
         { status: 400 }
@@ -75,6 +83,7 @@ export async function POST(request) {
     }
 
     if (password.length < 6) {
+      console.log('[REGISTER] Validation failed: password too short');
       return NextResponse.json(
         { success: false, message: 'Password must be at least 6 characters long.' },
         { status: 400 }
@@ -82,12 +91,15 @@ export async function POST(request) {
     }
 
     // Connect to MongoDB Atlas
+    console.log('[REGISTER] Connecting to database...');
     await connectDB();
+    console.log('[REGISTER] Database connected successfully');
 
     // Step 5: Email Check — is user already registered?
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (existingUser) {
+      console.log('[REGISTER] User already exists:', email);
       return NextResponse.json(
         {
           success: false,
@@ -98,10 +110,13 @@ export async function POST(request) {
     }
 
     // Step 6: Password Hashing with bcrypt
+    console.log('[REGISTER] Hashing password...');
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    console.log('[REGISTER] Password hashed successfully');
 
     // Step 7: User Creation — save to MongoDB Atlas
+    console.log('[REGISTER] Creating user in database...');
     const newUser = await User.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
@@ -110,6 +125,7 @@ export async function POST(request) {
       loginHistory: [],
       createdAt: new Date(),
     });
+    console.log('[REGISTER] User created successfully:', newUser._id);
 
     // Step 8: Response (Welcome email would be triggered here via automation tool)
     return NextResponse.json(
@@ -126,7 +142,12 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Registration Error:', error);
+    console.error('[REGISTER] Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      stack: error.stack,
+    });
 
     // Handle MongoDB connection errors
     if (error.name === 'MongooseError' || error.message.includes('Mongo')) {

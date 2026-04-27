@@ -33,11 +33,14 @@ function loginRateLimit(ip) {
 
 export async function POST(request) {
   try {
+    console.log('[LOGIN] Starting login request');
+
     // Step 3: Security Middleware — Rate Limiting
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const rateLimitResult = loginRateLimit(ip);
 
     if (!rateLimitResult.allowed) {
+      console.log('[LOGIN] Rate limit exceeded for IP:', ip);
       return NextResponse.json(
         {
           success: false,
@@ -51,7 +54,10 @@ export async function POST(request) {
     const body = await request.json();
     const { email, password } = body;
 
+    console.log('[LOGIN] Received data:', { email, password: '***' });
+
     if (!email || !password) {
+      console.log('[LOGIN] Validation failed: missing fields');
       return NextResponse.json(
         { success: false, message: 'Email and password are required.' },
         { status: 400 }
@@ -59,12 +65,15 @@ export async function POST(request) {
     }
 
     // Connect to DB
+    console.log('[LOGIN] Connecting to database...');
     await connectDB();
+    console.log('[LOGIN] Database connected successfully');
 
     // Step 4: User Identification — check if email exists in DB
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).exec();
 
     if (!user) {
+      console.log('[LOGIN] User not found:', email);
       return NextResponse.json(
         {
           success: false,
@@ -75,19 +84,24 @@ export async function POST(request) {
     }
 
     // Step 5: Hash Comparison — bcrypt match
+    console.log('[LOGIN] Comparing password...');
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
+      console.log('[LOGIN] Password mismatch for:', email);
       return NextResponse.json(
         { success: false, message: 'Incorrect password. Please try again.' },
         { status: 401 }
       );
     }
 
+    console.log('[LOGIN] Password match successful');
+
     // Update login tracking in database
     const now = new Date();
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
+    console.log('[LOGIN] Updating login history...');
     await User.findByIdAndUpdate(user._id, {
       $inc: { loginCount: 1 },
       $set: { lastLogin: now },
@@ -98,6 +112,7 @@ export async function POST(request) {
         },
       },
     });
+    console.log('[LOGIN] Login history updated');
 
     // Step 8: Identity Response
     return NextResponse.json(
@@ -115,7 +130,12 @@ export async function POST(request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Login Error:', error);
+    console.error('[LOGIN] Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      stack: error.stack,
+    });
 
     // Handle MongoDB connection errors
     if (error.name === 'MongooseError' || error.message.includes('Mongo')) {

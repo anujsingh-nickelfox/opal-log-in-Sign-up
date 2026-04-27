@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 
+export const runtime = 'nodejs';
+
 // Simple in-memory rate limiting (resets on server restart)
 const rateLimitMap = new Map();
 
@@ -111,7 +113,7 @@ export async function POST(request) {
 
     // Step 6: Password Hashing with bcrypt
     console.log('[REGISTER] Hashing password...');
-    const saltRounds = 12;
+    const saltRounds = 10; // Reduced from 12 for serverless timeout safety
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     console.log('[REGISTER] Password hashed successfully');
 

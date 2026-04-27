@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 
+export const runtime = 'nodejs';
+
 // Rate limiting map for login attempts
 const loginRateLimitMap = new Map();
 

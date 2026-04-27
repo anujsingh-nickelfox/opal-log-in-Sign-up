@@ -1,0 +1,28 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: #050508;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #0ea5e9;
+  border: 1px solid rgba(14,165,233,0.3) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+::selection {
+  background: rgba(14,165,233,0.3);
+  color: #ffffff;
+}

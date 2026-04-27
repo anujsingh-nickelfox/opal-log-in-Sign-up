@@ -228,9 +228,21 @@ export default function AuthPage() {
     if (!email || !password) { setError('Please fill in all fields.'); setLoading(false); return; }
     try {
       const result = await signIn('credentials', { email: email.toLowerCase().trim(), password, redirect: false });
-      if (result?.error) setError(result.error);
-      else if (result?.ok) { setSuccess('Login successful! Redirecting...'); setTimeout(() => router.replace('/dashboard'), 800); }
-    } catch { setError('Network error. Please try again.'); }
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      if (result?.ok) {
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => router.replace('/dashboard'), 800);
+      } else {
+        setError('Login failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Network error. Please try again.');
+    }
     finally { setLoading(false); }
   };
 

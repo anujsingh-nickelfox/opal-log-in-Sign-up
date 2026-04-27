@@ -36,24 +36,12 @@ export const authOptions = {
             throw new Error('Incorrect password. Please try again.');
           }
 
-          // Update login count and history
-          const now = new Date();
-          await User.findByIdAndUpdate(user._id, {
-            $inc: { loginCount: 1 },
-            $set: { lastLogin: now },
-            $push: {
-              loginHistory: {
-                $each: [{ timestamp: now, ip: 'web', userAgent: 'browser' }],
-                $slice: -50, // keep last 50 login records
-              },
-            },
-          });
-
+          // Note: Login count is updated in /api/login route, not here to avoid double counting
           return {
             id: user._id.toString(),
             email: user.email,
             name: user.name,
-            loginCount: user.loginCount + 1,
+            loginCount: user.loginCount,
           };
         } catch (error) {
           console.error('NextAuth authorize error:', error);

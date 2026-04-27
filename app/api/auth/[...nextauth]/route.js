@@ -15,28 +15,50 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('[AUTH] Authorize called with:', { email: credentials?.email, hasPassword: !!credentials?.password });
+        
         if (!credentials?.email || !credentials?.password) {
+          console.error('[AUTH] Missing credentials');
           throw new Error('Email and password are required');
         }
 
         try {
+          console.log('[AUTH] Connecting to database...');
           await connectDB();
+          console.log('[AUTH] Database connected');
 
           // Step 4: User Identification — check if email exists
-          const user = await User.findOne({ email: credentials.email.toLowerCase() });
-
+          const emailToFind = credentials.email.toLowerCase().trim();
+          console.log('[AUTH] Searching for user with email:', emailToFind);
+          
+          const user = await User.findOne({ email: emailToFind }).exec();
+          console.log('[AUTH] User found:', !!user);
+          
           if (!user) {
+            console.error('[AUTH] No user found for email:', emailToFind);
             throw new Error('No account found with this email. Please sign up first.');
           }
 
+          console.log('[AUTH] User data:', { 
+            id: user._id, 
+            email: user.email, 
+            name: user.name,
+            hasPassword: !!user.password 
+          });
+
           // Step 5: Hash Comparison — bcrypt match
+          console.log('[AUTH] Comparing passwords...');
           const isPasswordMatch = await bcrypt.compare(credentials.password, user.password);
+          console.log('[AUTH] Password match result:', isPasswordMatch);
 
           if (!isPasswordMatch) {
+            console.error('[AUTH] Password mismatch for email:', emailToFind);
             throw new Error('Incorrect password. Please try again.');
           }
 
-          // Note: Login count is updated in /api/login route, not here to avoid double counting
+          console.log('[AUTH] Authentication successful for:', emailToFind);
+
+          // Return user data
           return {
             id: user._id.toString(),
             email: user.email,
@@ -44,7 +66,11 @@ export const authOptions = {
             loginCount: user.loginCount,
           };
         } catch (error) {
-          console.error('NextAuth authorize error:', error);
+          console.error('[AUTH] Authorize error:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+          });
           if (error.name === 'MongooseError' || error.message.includes('Mongo')) {
             throw new Error('Database connection error. Please try again later.');
           }

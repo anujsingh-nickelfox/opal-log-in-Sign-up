@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-// ── LOGIN slides (4 images as rich CSS scenes) ──────────────────────────────
 const LOGIN_SLIDES = [
   {
     id: 'l1',
@@ -16,7 +15,7 @@ const LOGIN_SLIDES = [
   {
     id: 'l2',
     label: 'ENCRYPTED VAULT',
-    subtitle: 'BCrypt 12-round Password Hashing',
+    subtitle: 'BCrypt 10-round Password Hashing',
     scene: 'https://static0.makeuseofimages.com/wordpress/wp-content/uploads/2024/09/a-phone-with-a-to-do-list-next-to-a-notebook-with-a-handwritten-to-do-list-a-pen-and-some-sticky-notes-around.jpg',
     accent: '#000000',
   },
@@ -24,37 +23,11 @@ const LOGIN_SLIDES = [
     id: 'l3',
     label: 'SESSION GUARD',
     subtitle: 'NextAuth Cookie Management',
-    scene: 'https://static.vecteezy.com/system/resources/previews/072/142/793/non_2x/hand-holding-smartphone-with-task-list-app-illustration-in-black-and-white-free-vector.jpg',
+    scene: 'https://static.vecteezy.com/system/resources/previews/072/142/793/non_2x/hand-holding-smartphone-with-a-task-list-app-illustration-in-black-and-white-free-vector.jpg',
     accent: '#000000',
   },
 ];
 
-// ── SIGNUP slides (4 images as rich CSS scenes) ─────────────────────────────
-const SIGNUP_SLIDES = [
-  {
-    id: 's1',
-    label: 'JOIN THE NETWORK',
-    subtitle: 'Create Your Secure Identity',
-    scene: 'https://cdn.prod.website-files.com/64786b619e5c33d650d5499e/681de2399355b0e36bb25f85_todo-list-priority-view.webp',
-    accent: '#f472b6',
-  },
-  {
-    id: 's2',
-    label: 'DATA SOVEREIGNTY',
-    subtitle: 'MongoDB Atlas Cloud Storage',
-    scene: 'https://sloboda-studio.com/wp-content/uploads/2020/10/image22.jpeg',
-    accent: '#fb923c',
-  },
-  {
-    id: 's3',
-    label: 'IDENTITY FORGE',
-    subtitle: 'Your Unique Digital Fingerprint',
-    scene: 'https://cdn.dribbble.com/userupload/11597515/file/original-2685b92ea022b8b53047980760cbd396.png?resize=752x&vertical=center',
-    accent: '#a78bfa',
-  },
-];
-
-// ── Slide scene renderer ─────────────────────────────────────────────────────
 function SlideScene({ scene }) {
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -63,49 +36,35 @@ function SlideScene({ scene }) {
   );
 }
 
-// ── Main Auth Page ────────────────────────────────────────────────────────────
-export default function AuthPage() {
+export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const canvasRef = useRef(null);
   const animRef = useRef(null);
 
   const [mounted, setMounted] = useState(false);
-  const [mode, setMode] = useState('login');
   const [slideIndex, setSlideIndex] = useState(0);
   const [prevSlide, setPrevSlide] = useState(null);
   const [transitioning, setTransitioning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [signupForm, setSignupForm] = useState({ name: '', email: '', password: '', confirm: '' });
 
-  // Hydration fix — only render after mount
   useEffect(() => { setMounted(true); }, []);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (status === 'authenticated') router.replace('/dashboard');
   }, [status, router]);
 
-  const slides = mode === 'login' ? LOGIN_SLIDES : SIGNUP_SLIDES;
-  const currentSlide = slides[slideIndex];
+  const currentSlide = LOGIN_SLIDES[slideIndex];
 
-  // Auto-advance slides
   useEffect(() => {
     const interval = setInterval(() => {
-      goToSlide((slideIndex + 1) % slides.length);
+      goToSlide((slideIndex + 1) % LOGIN_SLIDES.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, [slideIndex, slides.length]);
-
-  // Reset slide index when mode changes
-  useEffect(() => {
-    setSlideIndex(0);
-    setPrevSlide(null);
-  }, [mode]);
+  }, [slideIndex]);
 
   function goToSlide(idx) {
     if (transitioning) return;
@@ -118,7 +77,6 @@ export default function AuthPage() {
     }, 500);
   }
 
-  // Particle canvas background
   useEffect(() => {
     if (!mounted) return;
     const canvas = canvasRef.current;
@@ -153,8 +111,6 @@ export default function AuthPage() {
       ctx.fillStyle = '#050508';
       ctx.fillRect(0, 0, w, h);
 
-      // Grid
-      ctx.lineWidth = 1;
       const gs = 55;
       for (let x = 0; x < w; x += gs) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h);
@@ -215,71 +171,40 @@ export default function AuthPage() {
     };
   }, [mounted]);
 
-  const switchMode = (m) => {
-    setMode(m);
-    setError('');
-    setSuccess('');
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(''); setSuccess(''); setLoading(true);
     const { email, password } = loginForm;
+    console.log('[LOGIN PAGE] Attempting login with:', { email: email.toLowerCase().trim(), hasPassword: !!password });
+    
     if (!email || !password) { setError('Please fill in all fields.'); setLoading(false); return; }
     try {
+      console.log('[LOGIN PAGE] Calling signIn...');
       const result = await signIn('credentials', { email: email.toLowerCase().trim(), password, redirect: false });
+      console.log('[LOGIN PAGE] signIn result:', result);
+      
       if (result?.error) {
+        console.error('[LOGIN PAGE] signIn error:', result.error);
         setError(result.error);
         setLoading(false);
         return;
       }
       if (result?.ok) {
+        console.log('[LOGIN PAGE] Login successful, redirecting to dashboard');
         setSuccess('Login successful! Redirecting...');
         setTimeout(() => router.replace('/dashboard'), 800);
       } else {
+        console.error('[LOGIN PAGE] Login failed - no error but not ok');
         setError('Login failed. Please try again.');
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Network error. Please try again.');
-    }
-    finally { setLoading(false); }
-  };
-
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    setError(''); setSuccess(''); setLoading(true);
-    const { name, email, password, confirm } = signupForm;
-    if (!name || !email || !password || !confirm) { setError('All fields are required.'); setLoading(false); return; }
-    if (name.trim().length < 2) { setError('Name must be at least 2 characters.'); setLoading(false); return; }
-    if (!/^\S+@\S+\.\S+$/.test(email)) { setError('Please enter a valid email address.'); setLoading(false); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); setLoading(false); return; }
-    if (password !== confirm) { setError('Passwords do not match.'); setLoading(false); return; }
-    try {
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.toLowerCase().trim(), password }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.message || 'Registration failed.');
         setLoading(false);
-        return;
       }
-      setSuccess('Account created successfully! Please log in.');
-      // Clear form and switch to login mode
-      setSignupForm({ name: '', email: '', password: '', confirm: '' });
-      setLoginForm({ email: email.toLowerCase().trim(), password: '' });
-      setTimeout(() => switchMode('login'), 1500);
     } catch (err) {
-      console.error('Signup error:', err);
+      console.error('[LOGIN PAGE] Exception during login:', err);
       setError('Network error. Please try again.');
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
-  // Prevent SSR/client mismatch — only render after mount
   if (!mounted || status === 'loading') {
     return (
       <div suppressHydrationWarning style={{
@@ -316,7 +241,6 @@ export default function AuthPage() {
           box-shadow: 0 0 0 1px #e5e5e5, 0 10px 40px rgba(0,0,0,0.08);
         }
 
-        /* ── LEFT PANEL ── */
         .left-panel {
           flex: 1; position: relative; overflow: hidden;
           background: #f5f5f5;
@@ -330,7 +254,6 @@ export default function AuthPage() {
         .slide-layer.entering { opacity: 1; }
         .slide-layer.exiting  { opacity: 0; }
 
-        /* Bottom info bar */
         .slide-info {
           position: absolute; bottom: 0; left: 0; right: 0; z-index: 4;
           padding: 0 1.6rem 1.4rem;
@@ -380,7 +303,6 @@ export default function AuthPage() {
         }
         .sdot.active { width: 36px; background: #000000 !important; }
 
-        /* Fade gradient at bottom of left panel */
         .left-panel::after {
           content: '';
           position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
@@ -388,7 +310,6 @@ export default function AuthPage() {
           z-index: 3; pointer-events: none;
         }
 
-        /* ── RIGHT PANEL ── */
         .right-panel {
           width: 390px; background: #ffffff;
           display: flex; flex-direction: column;
@@ -503,10 +424,11 @@ export default function AuthPage() {
           font-family: 'Exo 2', sans-serif;
           font-size: 1rem; color: #666666; font-weight: 500;
         }
-        .switch-link span {
-          color: #000000; font-weight: 700; cursor: pointer; margin-left: 4px;
+        .switch-link a {
+          color: #000000; font-weight: 700; margin-left: 4px;
+          text-decoration: none;
         }
-        .switch-link span:hover { text-decoration: underline; }
+        .switch-link a:hover { text-decoration: underline; }
 
         .spin {
           display: inline-block; width: 13px; height: 13px;
@@ -523,50 +445,28 @@ export default function AuthPage() {
         }
       `}</style>
 
-
-
       <div className="auth-wrap">
         <div className="auth-box">
-
-          {/* ── LEFT: Image Slider ──────────────────────── */}
           <div className="left-panel">
-
-            {/* Outgoing slide (fade out) */}
             {transitioning && prevSlide !== null && (
               <div className="slide-layer exiting">
-                <SlideScene
-                  scene={slides[prevSlide].scene}
-                  accent={slides[prevSlide].accent}
-                />
+                <SlideScene scene={LOGIN_SLIDES[prevSlide].scene} />
               </div>
             )}
-
-            {/* Current slide (fade in) */}
             <div className="slide-layer entering">
-              <SlideScene
-                scene={currentSlide.scene}
-                accent={currentSlide.accent}
-              />
+              <SlideScene scene={currentSlide.scene} />
             </div>
-
-            {/* Bottom info overlay */}
             <div className="slide-info" style={{ zIndex: 5 }}>
               <div className="slide-logo-row">
                 <div className="opal-mark">OPAL</div>
                 <div className="opal-ver">SECURE ACCESS PROTOCOL v2.0</div>
               </div>
-
-              <div
-                className="slide-title-text"
-                style={{ color: currentSlide.accent }}
-              >
+              <div className="slide-title-text" style={{ color: currentSlide.accent }}>
                 {currentSlide.label}
               </div>
               <div className="slide-sub-text">{currentSlide.subtitle}</div>
-
-              {/* Dot indicators */}
               <div className="slide-dots">
-                {slides.map((_, i) => (
+                {LOGIN_SLIDES.map((_, i) => (
                   <div
                     key={i}
                     className={`sdot ${i === slideIndex ? 'active' : ''}`}
@@ -578,146 +478,58 @@ export default function AuthPage() {
             </div>
           </div>
 
-          {/* ── RIGHT: Auth Forms ───────────────────────── */}
           <div className="right-panel">
-
             <div className="tab-bar">
-              <button
-                className={`tab-btn ${mode === 'login' ? 'active' : ''}`}
-                onClick={() => switchMode('login')}
-              >
-                LOG IN
-              </button>
-              <button
-                className={`tab-btn ${mode === 'signup' ? 'active' : ''}`}
-                onClick={() => switchMode('signup')}
-              >
-                SIGN UP
-              </button>
+              <button className="tab-btn active">LOG IN</button>
+              <button className="tab-btn" onClick={() => router.push('/signup')}>SIGN UP</button>
             </div>
 
             <div className="form-body">
+              <div className="form-head">
+                <div className="form-head-title">Welcome Back</div>
+                <div className="form-head-sub">Enter your credentials to access the system</div>
+              </div>
 
-              {/* ── LOGIN FORM ─────────────────── */}
-              {mode === 'login' && (
-                <>
-                  <div className="form-head">
-                    <div className="form-head-title">Welcome Back</div>
-                    <div className="form-head-sub">Enter your credentials to access the system</div>
-                  </div>
+              {error && <div className="alert alert-err">⚠ {error}</div>}
+              {success && <div className="alert alert-ok">✓ {success}</div>}
 
-                  {error && <div className="alert alert-err">⚠ {error}</div>}
-                  {success && <div className="alert alert-ok">✓ {success}</div>}
+              <form onSubmit={handleLogin}>
+                <div className="fgroup">
+                  <label className="flabel">EMAIL ADDRESS</label>
+                  <input
+                    className="finput" type="email"
+                    placeholder="you@example.com"
+                    value={loginForm.email}
+                    onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+                    autoComplete="email" required
+                  />
+                </div>
 
-                  <form onSubmit={handleLogin}>
-                    <div className="fgroup">
-                      <label className="flabel">EMAIL ADDRESS</label>
-                      <input
-                        className="finput" type="email"
-                        placeholder="you@example.com"
-                        value={loginForm.email}
-                        onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
-                        autoComplete="email" required
-                      />
-                    </div>
+                <div className="fgroup">
+                  <label className="flabel">PASSWORD</label>
+                  <input
+                    className="finput" type="password"
+                    placeholder="••••••••"
+                    value={loginForm.password}
+                    onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                    autoComplete="current-password" required
+                  />
+                </div>
 
-                    <div className="fgroup">
-                      <label className="flabel">PASSWORD</label>
-                      <input
-                        className="finput" type="password"
-                        placeholder="••••••••"
-                        value={loginForm.password}
-                        onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
-                        autoComplete="current-password" required
-                      />
-                    </div>
+                <button className="sbtn" type="submit" disabled={loading}>
+                  {loading && <span className="spin" />}
+                  {loading ? 'AUTHENTICATING...' : 'ACCESS SYSTEM'}
+                </button>
+              </form>
 
-                    <button className="sbtn" type="submit" disabled={loading}>
-                      {loading && <span className="spin" />}
-                      {loading ? 'AUTHENTICATING...' : 'ACCESS SYSTEM'}
-                    </button>
-                  </form>
-
-                  <div className="switch-link">
-                    No account?<span onClick={() => switchMode('signup')}>Create one →</span>
-                  </div>
-                </>
-              )}
-
-              {/* ── SIGNUP FORM ────────────────── */}
-              {mode === 'signup' && (
-                <>
-                  <div className="form-head">
-                    <div className="form-head-title">Create Account</div>
-                    <div className="form-head-sub">Register to join the Opal network</div>
-                  </div>
-
-                  {error && <div className="alert alert-err">⚠ {error}</div>}
-                  {success && <div className="alert alert-ok">✓ {success}</div>}
-
-                  <form onSubmit={handleSignup}>
-                    <div className="fgroup">
-                      <label className="flabel">FULL NAME</label>
-                      <input
-                        className="finput" type="text"
-                        placeholder="Your full name"
-                        value={signupForm.name}
-                        onChange={e => setSignupForm({ ...signupForm, name: e.target.value })}
-                        autoComplete="name" required
-                      />
-                    </div>
-
-                    <div className="fgroup">
-                      <label className="flabel">EMAIL ADDRESS</label>
-                      <input
-                        className="finput" type="email"
-                        placeholder="you@example.com"
-                        value={signupForm.email}
-                        onChange={e => setSignupForm({ ...signupForm, email: e.target.value })}
-                        autoComplete="email" required
-                      />
-                    </div>
-
-                    <div className="fgroup">
-                      <label className="flabel">PASSWORD</label>
-                      <input
-                        className="finput" type="password"
-                        placeholder="Min. 6 characters"
-                        value={signupForm.password}
-                        onChange={e => setSignupForm({ ...signupForm, password: e.target.value })}
-                        autoComplete="new-password" required
-                      />
-                    </div>
-
-                    <div className="fgroup">
-                      <label className="flabel">CONFIRM PASSWORD</label>
-                      <input
-                        className="finput" type="password"
-                        placeholder="Re-enter password"
-                        value={signupForm.confirm}
-                        onChange={e => setSignupForm({ ...signupForm, confirm: e.target.value })}
-                        autoComplete="new-password" required
-                      />
-                    </div>
-
-                    <button className="sbtn" type="submit" disabled={loading}>
-                      {loading && <span className="spin" />}
-                      {loading ? 'CREATING ACCOUNT...' : 'REGISTER'}
-                    </button>
-                  </form>
-
-                  <div className="switch-link">
-                    Already registered?<span onClick={() => switchMode('login')}>Log in →</span>
-                  </div>
-                </>
-              )}
+              <div className="switch-link">
+                No account?<a href="/signup">Create one →</a>
+              </div>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* Bottom status bar */}
       <div style={{
         position: 'fixed', bottom: '0.85rem', left: '50%',
         transform: 'translateX(-50%)',

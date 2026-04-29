@@ -32,13 +32,6 @@ const LOGIN_SLIDES = [
 // ── SIGNUP slides (4 images as rich CSS scenes) ─────────────────────────────
 const SIGNUP_SLIDES = [
   {
-    id: 's1',
-    label: 'JOIN THE NETWORK',
-    subtitle: 'Create Your Secure Identity',
-    scene: 'https://cdn.prod.website-files.com/64786b619e5c33d650d5499e/681de2399355b0e36bb25f85_todo-list-priority-view.webp',
-    accent: '#f472b6',
-  },
-  {
     id: 's2',
     label: 'DATA SOVEREIGNTY',
     subtitle: 'MongoDB Atlas Cloud Storage',
@@ -235,7 +228,9 @@ export default function AuthPage() {
       }
       if (result?.ok) {
         setSuccess('Login successful! Redirecting...');
-        setTimeout(() => router.replace('/dashboard'), 800);
+        setTimeout(() => {
+          window.location.href = 'https://opal-home.netlify.app/dashboard/home';
+        }, 800);
       } else {
         setError('Login failed. Please try again.');
       }
@@ -267,11 +262,19 @@ export default function AuthPage() {
         setLoading(false);
         return;
       }
-      setSuccess('Account created successfully! Please log in.');
-      // Clear form and switch to login mode
-      setSignupForm({ name: '', email: '', password: '', confirm: '' });
-      setLoginForm({ email: email.toLowerCase().trim(), password: '' });
-      setTimeout(() => switchMode('login'), 1500);
+      setSuccess('Account created successfully! Redirecting...');
+      setTimeout(async () => {
+        const r = await signIn('credentials', {
+          email: email.toLowerCase().trim(),
+          password,
+          redirect: false,
+        });
+        if (r?.ok) {
+          window.location.href = 'https://opal-home.netlify.app/dashboard/home?new_user=1';
+        } else {
+          switchMode('login');
+        }
+      }, 1000);
     } catch (err) {
       console.error('Signup error:', err);
       setError('Network error. Please try again.');
@@ -536,7 +539,6 @@ export default function AuthPage() {
               <div className="slide-layer exiting">
                 <SlideScene
                   scene={slides[prevSlide].scene}
-                  accent={slides[prevSlide].accent}
                 />
               </div>
             )}
@@ -545,7 +547,6 @@ export default function AuthPage() {
             <div className="slide-layer entering">
               <SlideScene
                 scene={currentSlide.scene}
-                accent={currentSlide.accent}
               />
             </div>
 
